@@ -329,6 +329,15 @@ public class TooburSupport extends ID115Support {
                 LOG.warn("TOOBUR: GET live data before v3 fetch failed", ex);
             }
         }
+        // ID205/ID205U: firmware without v3 health sync -> use legacy ID115 fetch (CMD 0x08)
+        if (String.valueOf(gbDevice.getName()).toUpperCase().startsWith("ID205")) {
+            try {
+                new nodomain.freeyourgadget.gadgetbridge.service.devices.id115.FetchActivityOperation(this, true).perform();
+            } catch (IOException ex) {
+                LOG.error("ID205: legacy ID115 fetch failed", ex);
+            }
+            return;
+        }
         if (getEnabledV3HealthSyncDataTypes(prefs, autoFetch).length == 0) {
             if (!isLiveDataFetchEnabled(prefs, autoFetch)) {
                 LOG.info("TOOBUR: fetch skipped (no live data and no v3 types) autoFetch={}", autoFetch);

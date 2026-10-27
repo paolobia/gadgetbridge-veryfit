@@ -301,6 +301,11 @@ public class ControlCenterv2 extends AppCompatActivity
 
         // Open the Welcome flow on first run, only check permissions on next runs
         boolean firstRun = prefs.getBoolean("first_run", true);
+        if (firstRun && !GBApplication.app().getDeviceManager().getDevices().isEmpty()) {
+            // A device is already configured: the welcome flow was skipped by adding it directly
+            prefs.getPreferences().edit().putBoolean("first_run", false).apply();
+            firstRun = false;
+        }
         if (firstRun) {
             launchWelcomeActivity();
         } else {

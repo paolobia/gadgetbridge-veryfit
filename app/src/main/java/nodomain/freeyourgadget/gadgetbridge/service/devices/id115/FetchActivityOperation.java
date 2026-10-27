@@ -45,8 +45,20 @@ public class FetchActivityOperation extends AbstractID115Operation {
     private byte expectedSeq;
     private ArrayList<byte[]> packets;
 
-    protected FetchActivityOperation(ID115Support support) {
+    // Legacy keys: 0x03 = today, 0x05 = yesterday (observed on ID205U; the header carries the actual date)
+    private static final byte CMD_KEY_FETCH_ACTIVITY_YESTERDAY = 0x05;
+    private final byte[] keys;
+    private int keyIndex;
+
+    public FetchActivityOperation(ID115Support support) {
+        this(support, false);
+    }
+
+    public FetchActivityOperation(ID115Support support, boolean includeYesterday) {
         super(support);
+        keys = includeYesterday
+                ? new byte[]{ID115Constants.CMD_KEY_FETCH_ACTIVITY_TODAY, CMD_KEY_FETCH_ACTIVITY_YESTERDAY}
+                : new byte[]{ID115Constants.CMD_KEY_FETCH_ACTIVITY_TODAY};
     }
 
     @Override
@@ -56,15 +68,15 @@ public class FetchActivityOperation extends AbstractID115Operation {
 
     @Override
     protected void doPerform() throws IOException {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        outputStream.write(ID115Constants.CMD_ID_HEALTH_DATA);
-        outputStream.write(ID115Constants.CMD_KEY_FETCH_ACTIVITY_TODAY);
-        outputStream.write(0x01);
-        outputStream.write(0x00);
-        outputStream.write(0x00);
-        byte[] cmd = outputStream.toByteArray();
+        keyIndex = 0;
+        sendFetchRequest();
+    }
 
-        expectedCmd = ID115Constants.CMD_KEY_FETCH_ACTIVITY_TODAY;
+    private void sendFetchRequest() throws IOException {
+        byte key = keys[keyIndex];
+        byte[] cmd = new byte[]{ID115Constants.CMD_ID_HEALTH_DATA, key, 0x01, 0x00, 0x00};
+
+        expectedCmd = key;
         expectedSeq = 1;
         packets = new ArrayList<>();
 
@@ -81,7 +93,7 @@ public class FetchActivityOperation extends AbstractID115Operation {
             return;
         }
 
-        if (data.length < 4) {
+        if (data.length < 4 && !(data.length >= 2 && data[1] == (byte)0xEE)) {
             LOG.warn("short GATT response");
             return;
         }
@@ -90,7 +102,16 @@ public class FetchActivityOperation extends AbstractID115Operation {
             if (data[1] == (byte)0xEE) {
                 LOG.info("Activity data transfer has finished.");
                 parseAndStore();
-                operationFinished();
+                if (++keyIndex < keys.length) {
+                    try {
+                        sendFetchRequest();
+                    } catch (IOException ex) {
+                        LOG.error("Error requesting next activity day", ex);
+                        operationFinished();
+                    }
+                } else {
+                    operationFinished();
+                }
             } else {
                 if ((data[1] != expectedCmd) || (data[2] != expectedSeq)) {
                     GB.toast(getContext(), "Error fetching ID115 activity data, you may need to connect and disconnect", Toast.LENGTH_LONG, GB.ERROR);
@@ -122,20 +143,30 @@ public class FetchActivityOperation extends AbstractID115Operation {
 
         ArrayList<ID115ActivitySample> samples = new ArrayList<>();
 
+        // Samples are 5 bytes each but packet payloads are 16 bytes: the samples form one
+        // continuous stream across packets, so concatenate before splitting.
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
         for (int i = 2; i < packets.size(); i++) {
             byte[] packet = packets.get(i);
-            for (int j = 0; j <= packet.length - 5; j += 5) {
-                byte[] sampleData = new byte[5];
-                System.arraycopy(packet, j, sampleData, 0, sampleData.length);
+            stream.write(packet, 0, packet.length);
+        }
+        byte[] all = stream.toByteArray();
+        for (int j = 0; j <= all.length - 5; j += 5) {
+            byte[] sampleData = Arrays.copyOfRange(all, j, j + 5);
 
-                ID115ActivitySample sample = parseSample(sampleData);
-                if (sample != null) {
-                    sample.setTimestamp(ts);
-                    sample.setRawKind(ActivityKind.ACTIVITY.getCode());
-                    samples.add(sample);
-                }
-                ts += dt;
+            ID115ActivitySample sample = parseSample(sampleData);
+            if (sample == null && j == 0) {
+                // always store the first slot so a stale per-day summary row at midnight is replaced
+                sample = new ID115ActivitySample();
+                sample.setSteps(0);
+                sample.setHeartRate(ActivitySample.NOT_MEASURED);
             }
+            if (sample != null) {
+                sample.setTimestamp(ts);
+                sample.setRawKind(ActivityKind.ACTIVITY.getCode());
+                samples.add(sample);
+            }
+            ts += dt;
         }
 
         try (DBHandler dbHandler = GBApplication.acquireDB()) {

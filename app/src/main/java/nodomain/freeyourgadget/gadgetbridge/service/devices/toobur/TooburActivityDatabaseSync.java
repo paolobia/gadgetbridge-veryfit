@@ -71,7 +71,7 @@ public final class TooburActivityDatabaseSync {
             day.setActiveTimeMinutes(minutesRecordingLiveDataThisDay > 0 ? minutesRecordingLiveDataThisDay : null);
             day.setHeartRate(ActivitySample.NOT_MEASURED);
 
-            provider.addGBActivitySamples(new ID115ActivitySample[]{day});
+            provider.addGBActivitySamples(java.util.Collections.singletonList(day));
 
             HeartRateUtils hr = HeartRateUtils.getInstance();
             if (hr.isValidHeartRateValue(lastKnownHrmBpm)) {
@@ -87,7 +87,7 @@ public final class TooburActivityDatabaseSync {
                 hrRow.setRawKind(ActivityKind.ACTIVITY.getCode());
                 hrRow.setSteps(0);
                 hrRow.setHeartRate(lastKnownHrmBpm);
-                provider.addGBActivitySamples(new ID115ActivitySample[]{hrRow});
+                provider.addGBActivitySamples(java.util.Collections.singletonList(hrRow));
             }
 
             device.sendDeviceUpdateIntent(ctx);

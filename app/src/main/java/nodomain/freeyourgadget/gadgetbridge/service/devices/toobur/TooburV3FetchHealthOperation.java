@@ -275,7 +275,7 @@ public class TooburV3FetchHealthOperation extends AbstractID115Operation {
                 }
                 batch.add(s);
             }
-            provider.addGBActivitySamples(batch.toArray(new ID115ActivitySample[0]));
+            provider.addGBActivitySamples(batch);
             LOG.info("[V3 fetch] stored {} {} point(s) ({})", batch.size(),
                     spo2Column ? "SpO2" : "stress", parsed.parsingModel);
         } catch (Exception ex) {
@@ -306,7 +306,7 @@ public class TooburV3FetchHealthOperation extends AbstractID115Operation {
             sample.setUserId(userId);
             sample.setDeviceId(deviceId);
             ID115SampleProvider provider = new ID115SampleProvider(getDevice(), db.getDaoSession());
-            provider.addGBActivitySamples(new ID115ActivitySample[]{sample});
+            provider.addGBActivitySamples(java.util.Collections.singletonList(sample));
             LOG.info("[V3 fetch] stored sport sample steps={} date={}-{}-{}", s.totalSteps, s.year, s.month, s.day);
         } catch (Exception ex) {
             LOG.error("Failed to store v3 sport sample", ex);

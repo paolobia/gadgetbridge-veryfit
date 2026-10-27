@@ -61,7 +61,7 @@ import nodomain.freeyourgadget.gadgetbridge.activities.devicesettings.DeviceSpec
 public class TooburCoordinator extends AbstractBLEDeviceCoordinator {
 
     private static final Pattern TOOBUR_NAME_PATTERN = Pattern.compile(
-            "Toobur|Runlio|Biggerfive|Ksix|IDW|VeryFit|Ryze|A200|BAND\\s*8|BAND8",
+            "Toobur|Runlio|Biggerfive|Ksix|IDW|VeryFit|Ryze|ID205|A200|BAND\\s*8|BAND8",
             Pattern.CASE_INSENSITIVE
     );
 
@@ -70,12 +70,13 @@ public class TooburCoordinator extends AbstractBLEDeviceCoordinator {
     public Collection<? extends ScanFilter> createBLEScanFilters() {
         ParcelUuid service = new ParcelUuid(ID115Constants.UUID_SERVICE_ID115);
         ScanFilter filter = new ScanFilter.Builder().setServiceUuid(service).build();
-        return Collections.singletonList(filter);
+        ScanFilter byName = new ScanFilter.Builder().setDeviceName("ID205U").build();
+        return java.util.Arrays.asList(filter, byName);
     }
 
     @Override
     public boolean supports(GBDeviceCandidate candidate) {
-        if (!candidate.supportsService(ID115Constants.UUID_SERVICE_ID115)) {
+        if (!candidate.supportsService(ID115Constants.UUID_SERVICE_ID115) && !String.valueOf(candidate.getName()).toUpperCase().startsWith("ID205")) {
             return false;
         }
         String name = candidate.getName();
