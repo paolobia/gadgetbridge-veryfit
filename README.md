@@ -1,3 +1,11 @@
+> **Fork notice.** This is a fork of [d3nd3/gadgetbridge-veryfit](https://github.com/d3nd3/gadgetbridge-veryfit), itself a fork of [Gadgetbridge](https://codeberg.org/Freeyourgadget/Gadgetbridge). The Toobur/VeryFit driver is the work of Graham Fenner (d3nd3).
+>
+> **What this fork adds:** support for the **ID205U** smartwatch ("ASIAMENG ID205U"): the `ID205` name is recognised when scanning and pairing, health data is fetched with the legacy ID115 activity fetch (including yesterday), and the code compiles again after merging upstream Gadgetbridge. See the single commit [`eb23b8956`](https://github.com/paolobia/gadgetbridge-veryfit/commit/eb23b8956).
+>
+> **Status:** not yet built or tested on a real ID205U.
+>
+> Protocol research, captures and the full description of this fork: [paolobia/toobur-veryfit-research](https://github.com/paolobia/toobur-veryfit-research).
+
 Gadgetbridge is hosted on [codeberg.org](https://codeberg.org/Freeyourgadget/Gadgetbridge/).
 
 
